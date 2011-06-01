@@ -2,7 +2,7 @@
 
 /*
 
-* 整形済みテキスト編集支援プラグイン - PreEdit2 0.1
+* 整形済みテキスト編集支援プラグイン - PreEdit2 plugin 1.1
 
 PukiWikiで整形済みテキストを編集しやすくするプラグインです。
 次の機能があります。
@@ -12,8 +12,8 @@ PukiWikiで整形済みテキストを編集しやすくするプラグインで
 ** インストール方法
 
 *** skin (skin/pukiwiki.skin.php) の書換え
-php echo $body を次の一行に置換。
- php include_once 'plugin/preedit2.inc.php'; echo plugin_preedit2_echo($body);
+echo $body を次の一行に置換。
+ include_once 'plugin/preedit2.inc.php'; echo plugin_preedit2_echo($body);
 
 *** preedit2.inc.php のコピー
 - preedit2.inc.php
@@ -25,15 +25,14 @@ umorigu https://github.com/umorigu
 ** Licence
 GPL2 (GNU General Public License version 2)
 
-** Bugs & ToDo
-
 ** Version
-- 0.1 2011/05/31
+- 1.0 2011/05/31 First
+- 1.1 2011/06/01 Available for PHP 5.2
 
 */
 
 
-define(PREEDIT2_VERSION, 0.1);
+define(PREEDIT2_VERSION, 1.1);
 
 function plugin_preedit2_init()
 {
@@ -43,7 +42,7 @@ function plugin_preedit2_init()
 function plugin_preedit2_convert()
 {
 	// HTML にコンバート時に呼び出される
-	return "PreEdit2 plugin: version " . PREEDIT_VERSION . "\n";
+	return "PreEdit2 plugin: version " . PREEDIT2_VERSION . "\n";
 }
 
 
@@ -70,16 +69,15 @@ function plugin_preedit2_echo($body)
 	// $body の書換え
 	// $js_src を先頭に追加
 	$body = preg_replace("/^/", $js_src, $body, 1);
-	
 	return $body;
 }
 
 function plugin_preedit2_js()
 {
-	$js = <<<'_JS_SRC_'
-<script type="text/javascript">
-<!--
-
+	ob_start();
+?>
+<script type="text/javascript"><!--
+function insertPreBlock(e) {
 	// 選択範囲の位置を特定するIE専用の関数
 	function getSelectionPos_IE(e)
 	{
@@ -95,7 +93,6 @@ function plugin_preedit2_js()
 		return { start: s, end: e };
 	}
 
-function insertPreBlock(e) {
 	if( document.selection ) { // IE
 		var pos = getSelectionPos_IE(e);
 	} else if( e.setSelectionRange ){ // Mozilla (NN)
@@ -182,10 +179,19 @@ function __preedit2_onload() {
 	var b = document.createElement('input');
 	b.setAttribute('type', 'button');
 	b.setAttribute('value', '-->');
-	b.onclick = function(){var t = getMsgTextArea(); insertPreBlock(t); };
+	b.onclick = function(){
+		var t = getMsgTextArea();
+		if (t) {
+			insertPreBlock(t);
+		}
+	};
 	div.appendChild(b);
-	div.appendChild(document.createTextNode('選択範囲を整形済みテキストへ変換(<pre>で囲む)'));
-	msgTextArea.parentNode.parentNode.appendChild(div);
+	div.appendChild(document.createTextNode('選択範囲を整形済みテキストへ変換(#preで囲む)'));
+	if (msgTextArea.parentNode) {
+		if (msgTextArea.parentNode.parentNode) {
+			msgTextArea.parentNode.parentNode.appendChild(div);
+		}
+	}
 }
 
 if (window.addEventListener) window.addEventListener("load", __preedit2_onload, false);
@@ -193,11 +199,9 @@ if (window.attachEvent) window.attachEvent("onload", __preedit2_onload);
 
 // -->
 </script>
-
-
-_JS_SRC_;
-
+<?php
+	$js = ob_get_contents();
+	ob_end_clean();
 	return $js;
 }
-
 ?>
